@@ -1,0 +1,12 @@
+%p="#{message}"
+%form(action='/login' method='POST')
+  .formLayout
+    %label Username
+    %input(type='text' name='username')
+    %br
+    %label Password
+    %input(type='password' name='pw')
+    %br
+    %label
+    %input(type='submit' value='login')
+    %br

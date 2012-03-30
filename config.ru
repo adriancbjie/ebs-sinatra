@@ -1,7 +1,10 @@
 require 'rubygems'
 require 'bundler'
+require 'sinatra'
+require 'thin'
+require "sinatra/reloader"
 
 Bundler.require
-
 require './app'
-run App
+
+Rack::Handler::Thin.run App

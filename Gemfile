@@ -1,2 +1,8 @@
 gem "sinatra", :require => "sinatra/base"
 gem "koala"
+gem "data_mapper"
+gem "multi_json"
+gem "dm-mysql-adapter"
+gem "haml"
+gem "thin"
+gem "sinatra-reloader"

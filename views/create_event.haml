@@ -1,0 +1,15 @@
+Create a Facebook Event
+%form(action='/create_event_to_facebook' method='POST')
+  .formLayout
+    %label event name
+    %input(type='text' name='name')
+    %br
+    %label start_time (dd/mm/yyyy)
+    %input(type='text' name='start_time')
+    %br
+    %label end_time (dd/mm/yyyy)
+    %input(type='text' name='end_time')
+    %br
+    %label
+    %input(type='submit' value='create event')
+    %br
