@@ -130,10 +130,10 @@ class App < Sinatra::Base
     if session["user"].nil?
       haml :index, :locals => {:message => "you made a fucking error dude"}
     end
-    num_ppl = 5
     @graph = Koala::Facebook::API.new(oauth_access_token)
-    feeds = @graph.get_connections("144928738965947","feed")
-    "feeds"
+    feeds = @graph.get_connections(id,"feed")
+    puts feeds
+    "will be done once the fucking sap webservice is ready"
   end
   
   get '/events_list' do
