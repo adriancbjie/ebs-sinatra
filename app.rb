@@ -4,17 +4,19 @@ class App < Sinatra::Base
   DataMapper.setup(:default, 'mysql://root:@localhost:3306/ebs')
   @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', 'http://localhost:9292/facebook')
   # oauth_access_token = @oauth.get_app_access_token
-  oauth_access_token = "AAACnTjKcQ0sBAE3nFcKdPOtdOPjLblgSLSVoogb1WYL9rbZArHZClhXi6zgB7tlBbQMPBXZAnzqG4cxNHw6NDiyJFKrDeSpu0UyDxny4AZDZD"
+  oauth_access_token = "AAACnTjKcQ0sBAGJmh7ADcVCllVwHF7jMVCIkyPbw0hCxylbm9UZBON51sR27jIo5aWQrxT7eu21MPiJwjOgUXWipndnCYmAseugFnIwZDZD"
   products = {"-1" => ["beer","PURE BLONDE"],
               "-2" => ["beer","VICTORIA BITTER"],
               "-3" => ["liquor","ABSOLUT VODKA RUBY RED"],
               "-4" => ["liquor","GREY GOOSE"],
               "-5" => ["wine","2008 MIGUEL TORRES CABERNET SAUVIGNON"],
-              "-6" => ["wine","CHATEAU BERNADOTTE 2005"],
-              "-7" => ["food","FARMER PEANUTS"],
-              "-8" => ["food","BEEF TACO"],
-              "-9" => ["food","HOT DOGS"]}
-
+              "-6" => ["wine","CHATEAU BERNADOTTE 2005"]}
+              # "-7" => ["food","FARMER PEANUTS"],
+              # "-8" => ["food","BEEF TACO"],
+              # "-9" => ["food","HOT DOGS"]}
+  carton = {"beer" => 12,
+            "wine" => 24,
+            "liquor" => 36}
   class User
     include DataMapper::Resource
     property :uid, Integer
@@ -24,10 +26,12 @@ class App < Sinatra::Base
   end
   DataMapper.finalize
   DataMapper.auto_migrate!
-
-  User.create(:username => "adrian", :password => "asd", :uid => 1)
+  for i in 1..100
+    User.create(:username => "company#{i}", :password => "sapsucks", :uid => i)
+  end
+  
   get '/' do
-    haml :index, :locals => {:message => "Welcome"}
+    haml :index, :locals => {:message => ""}
   end
 
   post '/login' do
@@ -75,11 +79,36 @@ class App < Sinatra::Base
 
     puts "event_id #{event['id']}"
     message = ""
-    params[:chosen_products].each do |p|
+    chosen_products_array = params[:chosen_products]
+    chosen_products_array.each do |p|
       message += "#{p} "
     end
     @graph.put_connections(event['id'], "feed?message=#{message}")
+    type_of_product = []
+    chosen_products_array.each do |p|
+      product = products[p][0]
+      if not type_of_product.include? product
+        type_of_product << product
+      end
+    end
+    puts type_of_product
+    total_ratio = get_total_ratio(type_of_product)
+    total_num_attendees = params[:num_attendees]
+    brand_values = {}
+    type_of_product.each do |tp|
+      count = 0
+      chosen_products_array.each do |k|
+        if products[k][0] == tp
+          count += 1
+        end
+      end
+      brand_values[tp] = count
+    end
+    puts brand_values
     
+    
+    
+    "woo"
   end
   get "/sapsucks" do
     
@@ -104,5 +133,23 @@ class App < Sinatra::Base
          # end
        end
      end
+  end
+
+  def get_total_ratio(type_of_product)
+    if type_of_product.include? "beer" and type_of_product.include? "wine" and type_of_product.include? "liquor"
+      total_ratio = 11
+    elsif type_of_product.include? "beer" and type_of_product.include? "wine"
+      total_ratio = 9
+    elsif type_of_product.include? "wine" and type_of_product.include? "liquor"
+      total_ratio = 5
+    elsif type_of_product.include? "beer" and type_of_product.include? "liquor"
+      total_ratio = 8
+    elsif type_of_product.include? "beer"
+      total_ratio = 6
+    elsif type_of_product.include? "wine"
+      total_ratio = 3
+    elsif type_of_product.include? "liquor"
+      total_ratio = 2
+    end
   end
 end
