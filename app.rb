@@ -4,7 +4,7 @@ class App < Sinatra::Base
   DataMapper.setup(:default, 'mysql://root:@localhost:3306/ebs')
   @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', 'http://localhost:9292/facebook')
   # oauth_access_token = @oauth.get_app_access_token
-  oauth_access_token = "AAACnTjKcQ0sBAGJmh7ADcVCllVwHF7jMVCIkyPbw0hCxylbm9UZBON51sR27jIo5aWQrxT7eu21MPiJwjOgUXWipndnCYmAseugFnIwZDZD"
+  oauth_access_token = "AAACnTjKcQ0sBAFANH1DT9ZBIfLxvOpJICupM5gXnsnpLSkiWqzW3Prq0qz5LzHB4kD5ZAiENq45Qt6czr8kECYYVGUuUdNICKzXDfNigZDZD"
   products = {"-1" => ["beer","PURE BLONDE"],
               "-2" => ["beer","VICTORIA BITTER"],
               "-3" => ["liquor","ABSOLUT VODKA RUBY RED"],
@@ -17,6 +17,9 @@ class App < Sinatra::Base
   carton = {"beer" => 12,
             "wine" => 24,
             "liquor" => 36}
+  ratio = {"beer" => 6,
+           "wine" => 3,
+           "liquor" => 2}
   class User
     include DataMapper::Resource
     property :uid, Integer
@@ -26,6 +29,7 @@ class App < Sinatra::Base
   end
   DataMapper.finalize
   DataMapper.auto_migrate!
+  User.create(:username => "admin", :password => "admin", :uid => 0)
   for i in 1..100
     User.create(:username => "company#{i}", :password => "sapsucks", :uid => i)
   end
@@ -40,12 +44,15 @@ class App < Sinatra::Base
     user = User.get(@username)
     if not user.nil?
       if pw == user.password
-        puts "password is #{pw}"
         session["user"] = user.username
-        redirect '/main'
+        if @username == "admin"
+          redirect '/events_list'
+        else
+          redirect '/main'
+        end
       end
     end
-    haml :index, :locals => {:message => nil}
+    haml :index, :locals => {:message => "you made a fucking error dude"}
   end
 
   get '/main' do
@@ -65,6 +72,9 @@ class App < Sinatra::Base
   end
 
   post "/create_event_to_facebook" do
+    if session["user"].nil?
+      haml :index, :locals => {:message => "you made a fucking error dude"}
+    end
     event_name = params[:name]
     start_time = Date.strptime(params[:start_time], "%d/%m/%Y").to_time.to_i
     end_time = Date.strptime(params[:end_time], "%d/%m/%Y").to_time.to_i
@@ -84,6 +94,7 @@ class App < Sinatra::Base
       message += "#{p} "
     end
     @graph.put_connections(event['id'], "feed?message=#{message}")
+    #type of products array
     type_of_product = []
     chosen_products_array.each do |p|
       product = products[p][0]
@@ -91,9 +102,9 @@ class App < Sinatra::Base
         type_of_product << product
       end
     end
-    puts type_of_product
+    
     total_ratio = get_total_ratio(type_of_product)
-    total_num_attendees = params[:num_attendees]
+    #brand values
     brand_values = {}
     type_of_product.each do |tp|
       count = 0
@@ -104,20 +115,38 @@ class App < Sinatra::Base
       end
       brand_values[tp] = count
     end
-    puts brand_values
     
+    total_num_attendees = params[:num_attendees].to_i
     
+    orders = {}
+    chosen_products_array.each do |p|
+      p_type = products[p][0]
+      orders[p] = ((ratio[p_type] * total_num_attendees)/(total_ratio * carton[p_type])) / (brand_values[p_type])
+    end
     
-    "woo"
+    "orders #{orders}"
   end
-  get "/sapsucks" do
-    
+  get "/sapsucks/:event_id" do |id|
+    if session["user"].nil?
+      haml :index, :locals => {:message => "you made a fucking error dude"}
+    end
     num_ppl = 5
-    
     @graph = Koala::Facebook::API.new(oauth_access_token)
     feeds = @graph.get_connections("144928738965947","feed")
-     
-     "hi"
+    "feeds"
+  end
+  
+  get '/events_list' do
+    if session["user"].nil?
+      haml :index, :locals => {:message => "you made a fucking error dude"}
+    end
+    @graph = Koala::Facebook::API.new(oauth_access_token)
+    events_hash = @graph.get_connections("183954298389323","events")
+    events = []
+    events_hash.each do |e|
+      events << e
+    end
+    haml :events_list, :locals => {:events => events}
   end
   
   def parse_product_orders(feeds)

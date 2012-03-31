@@ -1,0 +1,21 @@
+Here's a list of all events in EBS
+%table.events
+  %tr
+    %th.events ID
+    %th.events Name
+    %th.events start_time
+    %th.events end_time
+    %th.events SAP WS
+  - events.each do |e|
+    %tr
+      %td.events
+        =e["id"]
+      %td.events 
+        =e["name"]
+      %td.events 
+        =e["start_time"]
+      %td.events 
+        =e["end_time"]
+      %td.events
+        %a(href="/sapsucks" title="sapsucks") go
+      
