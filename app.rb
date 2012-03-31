@@ -2,9 +2,8 @@ class App < Sinatra::Base
   register Sinatra::Reloader
   set :sessions, true
   DataMapper.setup(:default, 'mysql://root:@localhost:3306/ebs')
-  @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', 'http://localhost:9292/facebook')
-  # oauth_access_token = @oauth.get_app_access_token
-  oauth_access_token = "AAACnTjKcQ0sBAFANH1DT9ZBIfLxvOpJICupM5gXnsnpLSkiWqzW3Prq0qz5LzHB4kD5ZAiENq45Qt6czr8kECYYVGUuUdNICKzXDfNigZDZD"
+  @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', "http://localhost:8080/process_facebook_login")
+  app_oauth_access_token = @oauth.get_app_access_token
   products = {"-1" => ["beer","PURE BLONDE"],
               "-2" => ["beer","VICTORIA BITTER"],
               "-3" => ["liquor","ABSOLUT VODKA RUBY RED"],
@@ -45,14 +44,32 @@ class App < Sinatra::Base
     if not user.nil?
       if pw == user.password
         session["user"] = user.username
+        redirect_url = ""
         if @username == "admin"
-          redirect '/events_list'
+          redirect_url = "http://localhost:8080/events_list"
         else
-          redirect '/main'
+          redirect_url = "http://localhost:8080/main"
         end
+        @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', "http://localhost:8080/process_facebook_login")
+        session["oauth"] = @oauth
+        puts @oauth.url_for_oauth_code(:permissions => "publish_stream")
+        redirect @oauth.url_for_oauth_code(:permissions => "publish_stream")
+        
       end
     end
     haml :index, :locals => {:message => "you made a fucking error dude"}
+  end
+
+  get '/process_facebook_login' do
+    code = params[:code]
+    session["access_token"] = session["oauth"].get_access_token(code)
+    redirect_url = ""
+    if session["user"] == "admin"
+      redirect "/events_list"
+    else
+      redirect "/main"
+    end
+    
   end
 
   get '/main' do
@@ -84,7 +101,7 @@ class App < Sinatra::Base
         description += line
       end
     end
-    @graph = Koala::Facebook::API.new(oauth_access_token)
+    @graph = Koala::Facebook::API.new(app_oauth_access_token)
     event = @graph.put_connections("183954298389323", "events?name=#{event_name}&start_time=#{start_time}&end_time=#{end_time}&description=#{description}")
 
     puts "event_id #{event['id']}"
@@ -93,6 +110,7 @@ class App < Sinatra::Base
     chosen_products_array.each do |p|
       message += "#{p} "
     end
+    @graph = Koala::Facebook::API.new(session["access_token"])
     @graph.put_connections(event['id'], "feed?message=#{message}")
     #type of products array
     type_of_product = []
@@ -130,17 +148,27 @@ class App < Sinatra::Base
     if session["user"].nil?
       haml :index, :locals => {:message => "you made a fucking error dude"}
     end
-    @graph = Koala::Facebook::API.new(oauth_access_token)
+    @graph = Koala::Facebook::API.new(session["access_token"])
     feeds = @graph.get_connections(id,"feed")
     puts feeds
     "will be done once the fucking sap webservice is ready"
+  end
+  
+  get "/clear" do
+    @graph = Koala::Facebook::API.new(app_oauth_access_token)
+    events_hash = @graph.get_connections("183954298389323","events")
+    events = []
+    events_hash.each do |e|
+      @graph.delete_object(e['id'])
+    end
+    "cleared events list"
   end
   
   get '/events_list' do
     if session["user"].nil?
       haml :index, :locals => {:message => "you made a fucking error dude"}
     end
-    @graph = Koala::Facebook::API.new(oauth_access_token)
+    @graph = Koala::Facebook::API.new(app_oauth_access_token)
     events_hash = @graph.get_connections("183954298389323","events")
     events = []
     events_hash.each do |e|
