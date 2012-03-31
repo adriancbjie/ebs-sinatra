@@ -52,9 +52,7 @@ class App < Sinatra::Base
         end
         @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', "http://localhost:8080/process_facebook_login")
         session["oauth"] = @oauth
-        puts @oauth.url_for_oauth_code(:permissions => "publish_stream")
         redirect @oauth.url_for_oauth_code(:permissions => "publish_stream")
-        
       end
     end
     haml :index, :locals => {:message => "you made a fucking error dude"}
@@ -141,8 +139,8 @@ class App < Sinatra::Base
       p_type = products[p][0]
       orders[p] = ((ratio[p_type] * total_num_attendees)/(total_ratio * carton[p_type])) / (brand_values[p_type])
     end
-    
-    "orders #{orders}"
+    puts "orders #{orders}"
+    redirect "http://www.facebook.com/#{event['id']}"
   end
   get "/sapsucks/:event_id" do |id|
     if session["user"].nil?
