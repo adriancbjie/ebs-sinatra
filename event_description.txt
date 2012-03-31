@@ -4,7 +4,7 @@ If you'd like to express your interest in a particular product that your heart d
 
 Just post a message on this wall with the specific code listed for the item below.
 
-Example Wall Post: -PB -VB
+Example Wall Post: -1 -2 
 
 Code ---> Product
 -1 ---> PURE BLONDE

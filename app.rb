@@ -3,13 +3,8 @@ class App < Sinatra::Base
   set :sessions, true
   DataMapper.setup(:default, 'mysql://root:@localhost:3306/ebs')
   @oauth = Koala::Facebook::OAuth.new('183954298389323', 'ef1bd0f924d0260633e09c36aa9ca01c', 'http://localhost:9292/facebook')
-  oauth_access_token = @oauth.get_app_access_token
-  oauth_access_token = "AAACnTjKcQ0sBAJkLxhVUTWaHjUL2wOROyovZCD2YL5IOQ3jKbaS4oVmYKJ4YOMUxOn3SRXcYJtrx6zWvzZBb8aq8XpKAFTr8qRnM7LtQZDZD"
-  
-  configure do
-    @event_id = ""
-  end
-
+  # oauth_access_token = @oauth.get_app_access_token
+  oauth_access_token = "AAACnTjKcQ0sBAE3nFcKdPOtdOPjLblgSLSVoogb1WYL9rbZArHZClhXi6zgB7tlBbQMPBXZAnzqG4cxNHw6NDiyJFKrDeSpu0UyDxny4AZDZD"
   products = {"-1" => ["beer","PURE BLONDE"],
               "-2" => ["beer","VICTORIA BITTER"],
               "-3" => ["liquor","ABSOLUT VODKA RUBY RED"],
@@ -62,7 +57,7 @@ class App < Sinatra::Base
   end
 
   get '/create_event' do
-    haml :create_event
+    haml :create_event, :locals => {:products => products}
   end
 
   post "/create_event_to_facebook" do
@@ -75,33 +70,39 @@ class App < Sinatra::Base
         description += line
       end
     end
-    puts description
     @graph = Koala::Facebook::API.new(oauth_access_token)
     event = @graph.put_connections("183954298389323", "events?name=#{event_name}&start_time=#{start_time}&end_time=#{end_time}&description=#{description}")
 
-    # puts "hi #{@event_id}"
-    # woohoo = 'asdasljasjdn -1 ,asnkjangkja -2 ,asnkjgana -3'
-    # @graph.put_connections(event['id'], "feed?message=#{woohoo}")
-    # @graph.put_connections(event['id'], "feed?message=#{woohoo}")
-    # @graph.put_connections(event['id'], "feed?message=#{woohoo}")
-    # feeds = @graph.get_connections(event['id'],"feed")
+    puts "event_id #{event['id']}"
+    message = ""
+    params[:chosen_products].each do |p|
+      message += "#{p} "
+    end
+    @graph.put_connections(event['id'], "feed?message=#{message}")
+    
   end
-  
   get "/sapsucks" do
-
-     # codes = ""
-     # num_ppl = 5
-     # feeds.each do |f|
-     #   m = f['message']
-     #   for i in (0..(m.size - 2))
-     #     if m[i] == "-"
-     #       puts m[i+1]
-     #     end
-     #     if m[i] == "~"
-     #       num_ppl = m[i+1]
-     #     end
-     #   end
-     # end
+    
+    num_ppl = 5
+    
+    @graph = Koala::Facebook::API.new(oauth_access_token)
+    feeds = @graph.get_connections("144928738965947","feed")
+     
+     "hi"
   end
   
+  def parse_product_orders(feeds)
+    codes = []
+    feeds.each do |f|
+       m = f['message']
+       for i in (0..(m.size - 2))
+         if m[i] == "-"
+           codes << m[i+1]
+         end
+         # if m[i] == "~"
+         #   num_ppl = m[i+1]
+         # end
+       end
+     end
+  end
 end

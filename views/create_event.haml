@@ -1,6 +1,6 @@
-Create a Facebook Event
+Create your company Facebook Event
 %form(action='/create_event_to_facebook' method='POST')
-  .formLayout
+  .eventFormLayout
     %label event name
     %input(type='text' name='name')
     %br
@@ -10,6 +10,14 @@ Create a Facebook Event
     %label end_time (dd/mm/yyyy)
     %input(type='text' name='end_time')
     %br
-    %label
+  Which products would you like to have for your event?
+  .eventFormLayout
+    - products.each do |key,value|
+      %label
+      %input(type="checkbox" name="chosen_products[]" value=key)
+      =value[1]
+      %br
+    %label Number of Attendees
+    %input(type="text" name="num_attendees")
     %input(type='submit' value='create event')
     %br
