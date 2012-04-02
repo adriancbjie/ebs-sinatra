@@ -145,18 +145,36 @@ class App < Sinatra::Base
     end
     puts "big #{big_order}"
     
-    # client = Savon::Client.new do
-    #   wsdl.document = File.read("Invoke.wsdl")
-    #   http.auth.basic "cslew", "handsome1"
-    # end
-
-    # response = client.request :yq1, :start_process do
-    #   soap.namespaces["xmlns:SOAP-ENV"] = "http://schemas.xmlsoap.org/soap/envelope/"
-    #   soap.namespaces["xmlns:xs"] = "http://www.w3.org/2001/XMLSchema"
-    #   soap.namespaces["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
-    #   soap.xml = File.read("so.xml")
-    #   puts soap.xml
-    # end
+    client = Savon::Client.new do
+      wsdl.document = File.read("Invoke.wsdl")
+      http.auth.basic "cslew", "handsome1"
+    end
+    #print all the operations in the service
+    # client.wsdl.soap_actions.each { |i| puts i }
+    response = client.request :yq1, :start_process do
+      soap.namespaces["xmlns:SOAP-ENV"] = "http://schemas.xmlsoap.org/soap/envelope/"
+      soap.namespaces["xmlns:xs"] = "http://www.w3.org/2001/XMLSchema"
+      soap.namespaces["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
+      puts "hi did i reach ehre?"
+      soap.xml = 
+      '<?xml version="1.0" encoding="utf-8"?>
+      <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <SOAP-ENV:Body>
+          <yq1:StartProcessRequestMessage xmlns:yq1="http://www.example.org/StartProcess/">
+            <Item xmlns:pns="http://www.example.org/Context">
+              <pns:ItemId>5</pns:ItemId>
+              <pns:Quantity>1</pns:Quantity>
+            </Item>
+            <CustomerID>1</CustomerID>
+            <RequestDate>2012-04-19</RequestDate>
+            <Level1>true</Level1>
+            <SOId>10</SOId>
+          </yq1:StartProcessRequestMessage>
+        </SOAP-ENV:Body>
+      </SOAP-ENV:Envelope>'
+      puts "i am finished"
+      puts soap.xml
+    end
 
     "will be done once the fucking sap webservice is ready"
   end
