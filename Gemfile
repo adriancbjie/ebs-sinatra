@@ -1,3 +1,4 @@
+source 'https://rubygems.org'
 gem "sinatra", :require => "sinatra/base"
 gem "koala"
 gem "data_mapper"
@@ -6,3 +7,4 @@ gem "dm-mysql-adapter"
 gem "haml"
 gem "thin"
 gem "sinatra-reloader"
+gem "savon"

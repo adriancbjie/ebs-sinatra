@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SOAP-ENV:Body>
+    <yq1:StartProcessRequestMessage xmlns:yq1="http://www.example.org/StartProcess/">
+      <Item xmlns:pns="http://www.example.org/Context">
+        <pns:ItemId>5</pns:ItemId>
+        <pns:Quantity>1</pns:Quantity>
+      </Item>
+      <CustomerID>1</CustomerID>
+      <RequestDate>2012-04-19</RequestDate>
+      <Level1>true</Level1>
+      <SOId>10</SOId>
+    </yq1:StartProcessRequestMessage>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

@@ -19,4 +19,4 @@ Code ---> Product
 
 Please also input your number of attendees like this
 
-Example: ~5
+Example: [5]
