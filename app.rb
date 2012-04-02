@@ -21,10 +21,18 @@ class App < Sinatra::Base
     property :password, String
     property :created_at, DateTime
   end
+  class Event
+    include DataMapper::Resource
+    property :soid, Integer
+    property :eid, String, :key => true
+    property :created_at, DateTime
+  end  
   DataMapper.finalize
   DataMapper.auto_migrate!
   User.create(:username => "admin", :password => "admin", :uid => 0)
-  for i in 1..100
+  User.create(:username => "icecoldbeer", :password => "sapsucks", :uid => 1)
+  User.create(:username => "timbre", :password => "sapsucks", :uid => 2)
+  for i in 3..100
     User.create(:username => "company#{i}", :password => "sapsucks", :uid => i)
   end
   
@@ -85,9 +93,9 @@ class App < Sinatra::Base
     if session["user"].nil?
       haml :index, :locals => {:message => "you made a fucking error dude"}
     end
-    event_name = params[:name]
-    start_time = Date.strptime(params[:start_time], "%d/%m/%Y").to_time.to_i
-    end_time = Date.strptime(params[:end_time], "%d/%m/%Y").to_time.to_i
+    event_name = params[:name] + " by [" + session["user"] + "] at (#{params['start_time']})"
+    start_time = Date.strptime(params[:start_time], "%d-%m-%Y").to_time.to_i
+    end_time = Date.strptime(params[:end_time], "%d-%m-%Y").to_time.to_i
     description = ""
     File.open('event_description.txt', 'r') do |f1|  
       while line = f1.gets
@@ -96,25 +104,89 @@ class App < Sinatra::Base
     end
     @graph = Koala::Facebook::API.new(app_oauth_access_token)
     event = @graph.put_connections("183954298389323", "events?name=#{event_name}&start_time=#{start_time}&end_time=#{end_time}&description=#{description}")
-
-    puts "event_id #{event['id']}"
+    event_id = event['id']
+    # puts "event_id #{event['id']}"
     total_num_attendees = params[:num_attendees].to_i
     message = ""
     chosen_products_array = params[:chosen_products]
     chosen_products_array.each do |p|
       message += "#{p} "
     end
-    message += "~#{total_num_attendees}"
+    message += "[#{total_num_attendees}]"
     @graph = Koala::Facebook::API.new(session["access_token"])
     @graph.put_connections(event['id'], "feed?message=#{message}")
+    
+    #now i will invoke level 1 service
+    @graph = Koala::Facebook::API.new(session["access_token"])
+    event = @graph.get_object(event_id)
+    customer_id = cut_quant(event["name"])
+    customer_id = customer_id[1,customer_id.size - 2]
+    user = User.get(customer_id)
+    uid = user.uid
+    
+    request_date = cut_brackets(event["name"])
+    request_date = request_date[1,request_date.size - 2]
+    # puts "customer_id #{customer_id}"
+    # puts "request_date #{request_date}"
+    big_order = get_big_order(event_id)
+    item_string = ""
+    big_order.keys.each do |item_id|
+      quantity = big_order[item_id]
+      item_string += "
+                      <Item xmlns:pns=\"http://www.example.org/Context\">
+                        <pns:ItemId>#{item_id}</pns:ItemId>
+                        <pns:Quantity>#{quantity}</pns:Quantity>
+                      </Item>"
+    end
+    response = call_ws(item_string, request_date, uid, true, nil)
+    soid = response.body[:start_process_response][:so_id]
+    "#{response.body[:start_process_response][:so_id]}"
+    #since i get the SO, store it
+    Event.create(:eid => event['id'], :soid => soid)
     redirect "http://www.facebook.com/#{event['id']}"
   end
   get "/sapsucks/:event_id" do |id|
     if session["user"].nil?
       haml :index, :locals => {:message => "you made a fucking error dude"}
     end
+    big_order = get_big_order(id)
+    
+    #start level 2 service
     @graph = Koala::Facebook::API.new(session["access_token"])
-    feeds = @graph.get_connections(id,"feed")
+    event = @graph.get_object(id)
+    customer_id = cut_quant(event["name"])
+    customer_id = customer_id[1,customer_id.size - 2]
+    user = User.get(customer_id)
+    uid = user.uid
+    
+    request_date = cut_brackets(event["name"])
+    request_date = request_date[1,request_date.size - 2]
+    # puts "customer_id #{customer_id}"
+    # puts "request_date #{request_date}"
+    item_string = ""
+    big_order.keys.each do |item_id|
+      quantity = big_order[item_id]
+      item_string += "
+                      <Item xmlns:pns=\"http://www.example.org/Context\">
+                        <pns:ItemId>#{item_id}</pns:ItemId>
+                        <pns:Quantity>#{quantity}</pns:Quantity>
+                      </Item>"
+    end
+    e_obj = Event.get(id)
+    soid = e_obj.soid
+    response = call_ws(item_string, request_date, uid, false, soid)
+    "#{response.body[:start_process_response][:so_id]}"
+  end
+  
+  def get_big_order(event_id)
+    products = {"-1" => ["beer","PURE BLONDE",5],
+                "-2" => ["beer","VICTORIA BITTER",7],
+                "-3" => ["liquor","ABSOLUT VODKA RUBY RED",8],
+                "-4" => ["liquor","GREY GOOSE",9],
+                "-5" => ["wine","2008 MIGUEL TORRES CABERNET SAUVIGNON",19],
+                "-6" => ["wine","CHATEAU BERNADOTTE 2005",18]}
+    @graph = Koala::Facebook::API.new(session["access_token"])
+    feeds = @graph.get_connections(event_id,"feed")
     
     #parse the feed data and aggregate them
     orders_array = []
@@ -125,7 +197,7 @@ class App < Sinatra::Base
       choice_array.delete(total_num_attendees)
       total_num_attendees = total_num_attendees.delete("]").delete("[").to_i
       orders_array << calculate_orders(choice_array,total_num_attendees)
-      puts "hi #{orders_array}"
+      # puts "hi #{orders_array}"
     end
     
     #aggregate all orders
@@ -143,40 +215,75 @@ class App < Sinatra::Base
         end
       end
     end
-    puts "big #{big_order}"
-    
+    # puts "big #{big_order}"
+    return big_order
+  end
+  
+  def call_ws(item_string, request_date, uid, level1, soid)
     client = Savon::Client.new do
       wsdl.document = File.read("Invoke.wsdl")
       http.auth.basic "cslew", "handsome1"
-    end
-    #print all the operations in the service
-    # client.wsdl.soap_actions.each { |i| puts i }
+    end    
     response = client.request :yq1, :start_process do
       soap.namespaces["xmlns:SOAP-ENV"] = "http://schemas.xmlsoap.org/soap/envelope/"
       soap.namespaces["xmlns:xs"] = "http://www.w3.org/2001/XMLSchema"
       soap.namespaces["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
-      puts "hi did i reach ehre?"
       soap.xml = 
-      '<?xml version="1.0" encoding="utf-8"?>
-      <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+      <SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">
         <SOAP-ENV:Body>
-          <yq1:StartProcessRequestMessage xmlns:yq1="http://www.example.org/StartProcess/">
-            <Item xmlns:pns="http://www.example.org/Context">
-              <pns:ItemId>5</pns:ItemId>
-              <pns:Quantity>1</pns:Quantity>
-            </Item>
-            <CustomerID>1</CustomerID>
-            <RequestDate>2012-04-19</RequestDate>
-            <Level1>true</Level1>
-            <SOId>10</SOId>
+          <yq1:StartProcessRequestMessage xmlns:yq1=\"http://www.example.org/StartProcess/\">
+            #{item_string}
+            <CustomerID>#{uid}</CustomerID>
+            <RequestDate>#{request_date}</RequestDate>
+            <Level1>#{level1}</Level1>
+            <SOId>#{soid}</SOId>
           </yq1:StartProcessRequestMessage>
         </SOAP-ENV:Body>
-      </SOAP-ENV:Envelope>'
-      puts "i am finished"
-      puts soap.xml
+      </SOAP-ENV:Envelope>"
     end
-
-    "will be done once the fucking sap webservice is ready"
+    return response
+  end
+  
+  get "/clear" do
+    @graph = Koala::Facebook::API.new(app_oauth_access_token)
+    events_hash = @graph.get_connections("183954298389323","events")
+    events = []
+    events_hash.each do |e|
+      @graph.delete_object(e['id'])
+    end
+    "cleared events list"
+  end
+  
+  get '/events_list' do
+    if session["user"].nil?
+      haml :index, :locals => {:message => "you made a fucking error dude"}
+    end
+    @graph = Koala::Facebook::API.new(app_oauth_access_token)
+    events_hash = @graph.get_connections("183954298389323","events")
+    events = []
+    events_hash.each do |e|
+      events << e
+    end
+    haml :events_list, :locals => {:events => events}
+  end
+  
+  def get_total_ratio(type_of_product)
+    if type_of_product.include? "beer" and type_of_product.include? "wine" and type_of_product.include? "liquor"
+      total_ratio = 11
+    elsif type_of_product.include? "beer" and type_of_product.include? "wine"
+      total_ratio = 9
+    elsif type_of_product.include? "wine" and type_of_product.include? "liquor"
+      total_ratio = 5
+    elsif type_of_product.include? "beer" and type_of_product.include? "liquor"
+      total_ratio = 8
+    elsif type_of_product.include? "beer"
+      total_ratio = 6
+    elsif type_of_product.include? "wine"
+      total_ratio = 3
+    elsif type_of_product.include? "liquor"
+      total_ratio = 2
+    end
   end
   
   def parse_message(message)
@@ -196,6 +303,9 @@ class App < Sinatra::Base
   def cut_quant(message)
     return message[message.index("["),message.index("]") - message.index("[") + 1]
   end
+  def cut_brackets(message)
+    return message[message.index("("),message.index(")") - message.index("(") + 1]
+  end  
   
   def calculate_orders(chosen_products_array,total_num_attendees)
     products = {"-1" => ["beer","PURE BLONDE",5],
@@ -246,61 +356,5 @@ class App < Sinatra::Base
       orders[p] = ((ratio[p_type] * total_num_attendees)/(total_ratio * carton[p_type])) / (brand_values[p_type])
     end
     return orders
-  end
-  
-  get "/clear" do
-    @graph = Koala::Facebook::API.new(app_oauth_access_token)
-    events_hash = @graph.get_connections("183954298389323","events")
-    events = []
-    events_hash.each do |e|
-      @graph.delete_object(e['id'])
-    end
-    "cleared events list"
-  end
-  
-  get '/events_list' do
-    if session["user"].nil?
-      haml :index, :locals => {:message => "you made a fucking error dude"}
-    end
-    @graph = Koala::Facebook::API.new(app_oauth_access_token)
-    events_hash = @graph.get_connections("183954298389323","events")
-    events = []
-    events_hash.each do |e|
-      events << e
-    end
-    haml :events_list, :locals => {:events => events}
-  end
-  
-  def parse_product_orders(feeds)
-    codes = []
-    feeds.each do |f|
-       m = f['message']
-       for i in (0..(m.size - 2))
-         if m[i] == "-"
-           codes << m[i+1]
-         end
-         # if m[i] == "~"
-         #   num_ppl = m[i+1]
-         # end
-       end
-     end
-  end
-
-  def get_total_ratio(type_of_product)
-    if type_of_product.include? "beer" and type_of_product.include? "wine" and type_of_product.include? "liquor"
-      total_ratio = 11
-    elsif type_of_product.include? "beer" and type_of_product.include? "wine"
-      total_ratio = 9
-    elsif type_of_product.include? "wine" and type_of_product.include? "liquor"
-      total_ratio = 5
-    elsif type_of_product.include? "beer" and type_of_product.include? "liquor"
-      total_ratio = 8
-    elsif type_of_product.include? "beer"
-      total_ratio = 6
-    elsif type_of_product.include? "wine"
-      total_ratio = 3
-    elsif type_of_product.include? "liquor"
-      total_ratio = 2
-    end
-  end
+  end  
 end

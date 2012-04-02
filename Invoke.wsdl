@@ -1,76 +1,57 @@
-<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://www.example.org/StartProcess/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" targetNamespace="http://www.example.org/StartProcess/">
-    <Policy xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="P1" xmlns="http://schemas.xmlsoap.org/ws/2004/09/policy">
-        <ExactlyOne>
-            <All>
-                <wsp:ExactlyOne xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy"><!--Binding for AuthenticationMethod sapsp:HTTPSSO2-->
-                    <wsp:All>
-                        <sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702">
-                            <wsp:Policy>
-                                <sp:TransportToken>
-                                    <wsp:Policy><!--AuthenticationMethod sapsp:HTTPSSO2-->
-                                        <sp:HttpsToken>
-                                            <wsp:Policy>
-                                                <sapsp:HTTPSSO2 xmlns:sapsp="http://www.sap.com/webas/630/soap/features/security/policy"/>
-                                            </wsp:Policy>
-                                        </sp:HttpsToken>
-                                    </wsp:Policy>
-                                </sp:TransportToken>
-                                <sp:AlgorithmSuite>
-                                    <wsp:Policy>
-                                        <sp:TripleDesRsa15/>
-                                    </wsp:Policy>
-                                </sp:AlgorithmSuite>
-                                <sp:Layout>
-                                    <wsp:Policy>
-                                        <sp:Strict/>
-                                    </wsp:Policy>
-                                </sp:Layout>
-                            </wsp:Policy>
-                        </sp:TransportBinding>
-                    </wsp:All><!--Binding for AuthenticationMethod sapsp:HTTPBasic-->
-                    <wsp:All>
-                        <sp:TransportBinding xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702">
-                            <wsp:Policy>
-                                <sp:TransportToken>
-                                    <wsp:Policy><!--AuthenticationMethod sapsp:HTTPBasic-->
-                                        <sp:HttpsToken>
-                                            <wsp:Policy>
-                                                <sp:HttpBasicAuthentication/>
-                                            </wsp:Policy>
-                                        </sp:HttpsToken>
-                                    </wsp:Policy>
-                                </sp:TransportToken>
-                                <sp:AlgorithmSuite>
-                                    <wsp:Policy>
-                                        <sp:TripleDesRsa15/>
-                                    </wsp:Policy>
-                                </sp:AlgorithmSuite>
-                                <sp:Layout>
-                                    <wsp:Policy>
-                                        <sp:Strict/>
-                                    </wsp:Policy>
-                                </sp:Layout>
-                            </wsp:Policy>
-                        </sp:TransportBinding>
-                    </wsp:All>
-                </wsp:ExactlyOne>
-            </All>
-        </ExactlyOne>
-    </Policy>
-    <UsingPolicy xmlns="http://schemas.xmlsoap.org/ws/2004/09/policy"/>
-    <wsdl:import location="http://galaxy:50000/bpm/demosapcom/team1/process/pr/pm/Start?location=META-INF/wsdl/src/wsdl/pt_tmpl_StartTeam1Processdemosapcom2Fteam12Fprocess2Fpr2Fpm2FStart.wsdl&amp;wsdl&amp;mode=ws_policy" namespace="http://www.example.org/StartProcess/"/>
-    <wsdl:binding name="StartTeam1ProcessBinding" type="tns:StartTeam1Process">
-        <PolicyReference URI="#P1" xmlns="http://schemas.xmlsoap.org/ws/2004/09/policy"/>
-        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
-        <wsdl:operation name="StartProcess">
-            <soap:operation soapAction=""/>
-            <wsdl:input>
-                <soap:body use="literal"/>
-            </wsdl:input>
-            <wsdl:output>
-                <soap:body use="literal"/>
-            </wsdl:output>
-        </wsdl:operation>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://www.example.org/StartProcess/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="StartProcess" targetNamespace="http://www.example.org/StartProcess/">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://www.example.org/StartProcess/">
+      <xsd:import namespace="http://www.example.org/Context" schemaLocation="http://galaxy:50000/bpm/demosapcom/team1/process/pr/pm/Start?location=META-INF/wsdl/src/wsdl/Context.xsd&amp;wsdl"/>
+      <xsd:element name="StartProcessResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="SOId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="StartProcessRequestMessage">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element xmlns:ns1="http://www.example.org/Context" maxOccurs="unbounded" name="Item" type="ns1:ItemType"/>
+            <xsd:element name="CustomerID" type="xsd:string"/>
+            <xsd:element name="RequestDate" type="xsd:string"/>
+            <xsd:element name="Level1" type="xsd:boolean"/>
+            <xsd:element name="SOId" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="StartProcessResponse">
+    <wsdl:part element="tns:StartProcessResponse" name="parameters"/>
+  </wsdl:message>
+  <wsdl:message name="StartProcessRequest">
+    <wsdl:part element="tns:StartProcessRequestMessage" name="parameters"/>
+  </wsdl:message>
+  <wsdl:portType name="StartTeam1Process">
+    <wsdl:operation name="StartProcess">
+      <wsdl:input message="tns:StartProcessRequest"/>
+      <wsdl:output message="tns:StartProcessResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="StartTeam1ProcessBinding" type="tns:StartTeam1Process">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="StartProcess">
+      <soap:operation soapAction=""/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
     
-    </wsdl:binding>
+  </wsdl:binding>
+  <wsdl:service name="StartTeam1ProcessService">
+    <wsdl:port binding="tns:StartTeam1ProcessBinding" name="StartTeam1ProcessPort">
+      <soap:address location="http://galaxy:50000/bpm/demosapcom/team1/process/pr/pm/Start"/>
+    </wsdl:port>
+  </wsdl:service>
+  
+  
 </wsdl:definitions>
