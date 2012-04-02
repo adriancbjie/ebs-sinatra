@@ -140,7 +140,7 @@ class App < Sinatra::Base
     end
     response = call_ws(item_string, request_date, uid, true, nil)
     soid = response.body[:start_process_response][:so_id]
-    "#{response.body[:start_process_response][:so_id]}"
+    # "#{response.body[:start_process_response][:so_id]}"
     #since i get the SO, store it
     Event.create(:eid => event['id'], :soid => soid)
     redirect "http://www.facebook.com/#{event['id']}"
@@ -175,7 +175,8 @@ class App < Sinatra::Base
     e_obj = Event.get(id)
     soid = e_obj.soid
     response = call_ws(item_string, request_date, uid, false, soid)
-    "#{response.body[:start_process_response][:so_id]}"
+    # "#{response.body[:start_process_response][:so_id]}"
+    "succeeded :) go go power sap~"
   end
   
   def get_big_order(event_id)
